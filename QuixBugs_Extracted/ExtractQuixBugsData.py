@@ -53,6 +53,7 @@ python_data = []
 java_data = []
 python_correct_data = []
 java_correct_data = []
+code_context = []
 
 for filename in os.listdir(python_directory):
     if filename.endswith('.py'):
@@ -68,12 +69,21 @@ for filename in os.listdir(python_correct_directory):
         python_correct_code, context_correct = extract_python_code_and_context(content)
         python_correct_data.append([python_correct_code])
 
+context_index = 0
+
 for filename in os.listdir(java_directory):
     if filename.endswith('.java'):
         file_path = os.path.join(java_directory, filename)
         content = read_file_content(file_path)
         code = extract_java_code(content)
+        
+        if context_index < len(code_context):
+            context = code_context[context_index]
+        else:
+            context = "Error"
+        
         java_data.append([filename, code, context])
+        context_index += 1
 
 for filename in os.listdir(java_correct_directory):
     if filename.endswith('.java'):
@@ -81,6 +91,10 @@ for filename in os.listdir(java_correct_directory):
         content = read_file_content(file_path)
         java_correct_code = extract_java_code(content)
         java_correct_data.append([java_correct_code])
+
+# NOTE: The Java dataset has an additional two files that are extracted. 
+# These files aren't present in the Python dataset and it therefore causes 
+# some of the corresponding contexts and correct code to be incorrectly placed.
 
 df_python = pd.DataFrame(python_data, columns=['Filename', 'Code', 'Context and Comments'])
 df_python_correct = pd.DataFrame(python_correct_data, columns=['Correct Code'])
