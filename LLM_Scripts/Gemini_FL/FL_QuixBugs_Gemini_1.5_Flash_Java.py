@@ -2,29 +2,30 @@ import os
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+import google.generativeai as genai
 import re
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
 
-input_csv = './QuixBugs_Extracted/ExtractedPythonQuixBugs.csv'
-output_csv1 = './Responses/QuixBugs_GPT/test_zero_shot_ChatGPT_4o_Mini_Python.csv'
-output_csv2 = './Responses/QuixBugs_GPT/test_one_shot_ChatGPT_4o_Mini_Python.csv'
+input_csv = './QuixBugs_Extracted/ExtractedJavaQuixBugs.csv'
+output_csv1 = './Responses/QuixBugs_Gemini/zero_shot_Gemini_1.5_Flash_Java.csv'
+output_csv2 = './Responses/QuixBugs_Gemini/one_shot_Gemini_1.5_Flash_Java.csv'
 
-base_prompt = '''Please analyse the Python code snippet provided above. Identify the intention of the code and potential bugs in the code.  
-The object should contain up to three objects, ordered from most probable to least probable code line to be a bug.
-
-\nYour response should be in the following template structure:
+base_prompt = '''Please analyse the Java code snippet provided above. Identify the intention of the code and potential bugs in the code.
+The response should contain up to three objects, ordered from the most probable to least probable code line to contain a bug.
+\nYour response should be in the following template structure. Be mindful of indentation:
     ```
         {
-        "Intention": <brief description of the code's purpose>,
+        "Intention": <Brief description of the code's purpose>,
 
         "Fault Localisation": [
             {
-            "Buggy Code Line": <line number of buggy code>,
-            "Code": <actual buggy code>,
-            "Reason": <reason for the bug>
+            "Buggy Code Line": <Line number of buggy code>,
+            "Code": <Actual buggy code>,
+            "Reason": <Reason for the bug>
             },
             ...
         ]
@@ -32,26 +33,12 @@ The object should contain up to three objects, ordered from most probable to lea
     ```
 '''
 
-
-def prompt_chatgpt(content):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
-    }
-
-    data = {
-        "model": "gpt-4o-mini", 
-        "messages": [{"role": "user", "content": content}],
-    }
-
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
-    response_json = response.json()
-    
-    message_content = response_json["choices"][0]["message"]["content"].strip()
-    usage = response_json["usage"]
-    input_tokens = usage["prompt_tokens"]
-    output_tokens = usage["completion_tokens"]
-    
+def prompt_gemini(content):
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(content)
+    message_content = response.text.strip()
+    input_tokens = response.usage_metadata.prompt_token_count
+    output_tokens = response.usage_metadata.candidates_token_count
     return message_content, input_tokens, output_tokens
 
 def parse_response(response):
@@ -96,28 +83,28 @@ for index, col in df_input.iterrows():
     one_shot_prompt = 'Code:' + code_content + '\nThe code is expected to function as follows:' + explanation + '\n\n' + base_prompt 
 
     # zero-shot prompting
-    chatgpt_response_zs, input_tokens_zs, output_tokens_zs = prompt_chatgpt(zero_shot_prompt)
-    bugs_zs, intent_zs = parse_response(chatgpt_response_zs)
+    gemini_response_zs, input_tokens_zs, output_tokens_zs = prompt_gemini(zero_shot_prompt)
+    bugs_zs, intent_zs = parse_response(gemini_response_zs)
 
     while len(bugs_zs) < 3:
         bugs_zs.append({"Buggy Code Line": "", "Code": "", "Reason": ""})
     
     data_zs.append([
-        file_name, zero_shot_prompt, chatgpt_response_zs, input_tokens_zs, output_tokens_zs, intent_zs,
+        file_name, zero_shot_prompt, gemini_response_zs, input_tokens_zs, output_tokens_zs, intent_zs,
         bugs_zs[0]["Buggy Code Line"], bugs_zs[0]["Code"], bugs_zs[0]["Reason"],
         bugs_zs[1]["Buggy Code Line"], bugs_zs[1]["Code"], bugs_zs[1]["Reason"],
         bugs_zs[2]["Buggy Code Line"], bugs_zs[2]["Code"], bugs_zs[2]["Reason"]
     ])
 
     # one-shot prompting
-    chatgpt_response_os, input_tokens_os, output_tokens_os = prompt_chatgpt(one_shot_prompt)
-    bugs_os, intent_os = parse_response(chatgpt_response_os)
+    gemini_response_os, input_tokens_os, output_tokens_os = prompt_gemini(one_shot_prompt)
+    bugs_os, intent_os = parse_response(gemini_response_os)
 
     while len(bugs_os) < 3:
         bugs_os.append({"Buggy Code Line": "", "Code": "", "Reason": ""})
     
     data_os.append([
-        file_name, one_shot_prompt, chatgpt_response_os, input_tokens_os, output_tokens_os, intent_os,
+        file_name, one_shot_prompt, gemini_response_os, input_tokens_os, output_tokens_os, intent_os,
         bugs_os[0]["Buggy Code Line"], bugs_os[0]["Code"], bugs_os[0]["Reason"],
         bugs_os[1]["Buggy Code Line"], bugs_os[1]["Code"], bugs_os[1]["Reason"],
         bugs_os[2]["Buggy Code Line"], bugs_os[2]["Code"], bugs_os[2]["Reason"]

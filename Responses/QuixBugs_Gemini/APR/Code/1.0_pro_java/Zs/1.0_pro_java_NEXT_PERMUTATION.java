@@ -1,0 +1,1 @@
+if (perm.get(j) > perm.get(i)) { // Swap condition changed to '>' // Correctly swap the elements using 'temp_j' and 'temp_i' // Reverse the correct part of the permutation for (int k=i+1; k!=perm.size(); k++) { reversed.add(perm.get(k)); }

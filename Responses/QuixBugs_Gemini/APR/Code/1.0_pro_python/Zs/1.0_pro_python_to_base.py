@@ -1,0 +1,1 @@
+result = alphabet[i] + result
