@@ -8,11 +8,11 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-input_csv = './EvalGPTFix_Extracted/ExtractedEvalGPTFix.csv'
-output_csv1 = './Responses/EvalGPTFix_GPT/zero_shot_ChatGPT_4o_EvalGPTFix.csv'
-output_csv2 = './Responses/EvalGPTFix_GPT/one_shot_ChatGPT_4o_EvalGPTFix.csv'
+input_csv = './QuixBugs_Extracted/ExtractedPythonQuixBugs.csv'
+output_csv1 = './Responses/QuixBugs_GPT/zero_shot_ChatGPT_4o_Python.csv'
+output_csv2 = './Responses/QuixBugs_GPT/one_shot_ChatGPT_4o_Python.csv'
 
-base_prompt = '''Please analyse the Java code snippet provided. Identify the intention of the code and potential bugs in the code.
+base_prompt = '''Please analyse the Python code snippet provided above. Identify the intention of the code and potential bugs in the code.
 The response should contain up to three objects, ordered from the most probable to least probable code line to contain a bug.
 \nYour response should be in the following template structure:
     ```
@@ -38,7 +38,7 @@ def prompt_chatgpt(content):
     }
 
     data = {
-        "model": "gpt-4o-mini", 
+        "model": "gpt-4o", 
         "messages": [{"role": "user", "content": content}],
     }
 
@@ -63,6 +63,9 @@ def parse_response(response):
     bugs = bug_pattern.findall(response)
     
     extracted_intent = intent.findall(response)
+    if not extracted_intent:
+        extracted_intent = ['-']
+        
     for bug in bugs:
     
         bug_code_line = int(bug[0])
@@ -85,12 +88,12 @@ df_input = pd.read_csv(input_csv)
 for index, col in df_input.iterrows():
     file_name = col[0]
     code_content = col[1]
-    error_code = col[2]
-    explanation = col[3]
+    explanation = col[2]
 
-    print(f"Processing {file_name}")
+    print("Processing file:" + file_name + "\n")
 
-    zero_shot_prompt = base_prompt + '\n\n' + 'Code:' + code_content 
+    zero_shot_prompt = 'Code:' + code_content + '\n' + base_prompt
+    one_shot_prompt = 'Code:' + code_content + '\nThe code is expected to function as follows:' + explanation + '\n\n' + base_prompt 
 
     # zero-shot prompting
     chatgpt_response_zs, input_tokens_zs, output_tokens_zs = prompt_chatgpt(zero_shot_prompt)
@@ -100,25 +103,11 @@ for index, col in df_input.iterrows():
         bugs_zs.append({"Buggy Code Line": "", "Code": "", "Reason": ""})
     
     data_zs.append([
-        file_name, zero_shot_prompt, chatgpt_response_zs, input_tokens_zs, output_tokens_zs, intent_zs, 
+        file_name, zero_shot_prompt, chatgpt_response_zs, input_tokens_zs, output_tokens_zs, intent_zs,
         bugs_zs[0]["Buggy Code Line"], bugs_zs[0]["Code"], bugs_zs[0]["Reason"],
         bugs_zs[1]["Buggy Code Line"], bugs_zs[1]["Code"], bugs_zs[1]["Reason"],
         bugs_zs[2]["Buggy Code Line"], bugs_zs[2]["Code"], bugs_zs[2]["Reason"]
     ])
-
-    # one-shot prompting
-    if error_code == 'CE':
-        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: There is a ' + explanation + ' in the code' + '\n\nCode:' + code_content
-    elif error_code == 'TLE':
-        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
-    elif error_code == 'MLE':
-        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
-    elif error_code == 'RE':
-        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
-    elif error_code == 'WA':
-        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The output provides the ' + explanation + '\n\nCode:' + code_content
-    else:
-        one_shot_prompt = zero_shot_prompt
 
     # one-shot prompting
     chatgpt_response_os, input_tokens_os, output_tokens_os = prompt_chatgpt(one_shot_prompt)

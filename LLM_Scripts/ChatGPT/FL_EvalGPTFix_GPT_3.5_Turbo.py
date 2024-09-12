@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -11,11 +12,24 @@ input_csv = './EvalGPTFix_Extracted/ExtractedEvalGPTFix.csv'
 output_csv1 = './Responses/EvalGPTFix_GPT/zero_shot_ChatGPT_3.5_EvalGPTFix.csv'
 output_csv2 = './Responses/EvalGPTFix_GPT/one_shot_ChatGPT_3.5_EvalGPTFix.csv'
 
-prompt_test = '''Please identify the bug in the following Java code snippet. 
-                \nOnly indicate the location of the bug and the reason it is a bug (without providing a fix) in the format: 
-                \nLine Number: <Line number> (skip a line after the line number)
-                \nLine of Code: <Line of code with the bug> (skip a line after the code line)
-                \nReason: <Reason without a fix>'''
+base_prompt = '''Please analyse the Java code snippet provided. Identify the intention of the code and potential bugs in the code.
+The response should contain up to three objects, ordered from the most probable to least probable code line to contain a bug.
+\nYour response should be in the following template structure:
+    ```
+        {
+        "Intention": <Brief description of the code's purpose>,
+
+        "Fault Localisation": [
+            {
+            "Buggy Code Line": <Line number of buggy code>,
+            "Code": <Actual buggy code>,
+            "Reason": <Reason for the bug>
+            },
+            ...
+        ]
+        }
+    ```
+'''
 
 def prompt_chatgpt(content):
     headers = {
@@ -39,17 +53,34 @@ def prompt_chatgpt(content):
     return message_content, input_tokens, output_tokens
 
 def parse_response(response):
-    lines = response.split('\n')
-    bug_line_number = lines[0].replace('Line Number: ', '').strip()
-    buggy_line = lines[2].replace('Line of Code: ', '').strip()
-    reason_for_bug = '\n'.join(lines[4:]).replace('Reason: ', '').strip()
-    return bug_line_number, buggy_line, reason_for_bug
+
+    extracted_info = []
+    
+    bug_pattern = re.compile(r'\{\s*"Buggy Code Line":\s*(\d+),\s*"Code":\s*"([^"]+)",\s*"Reason":\s*"([^"]+)"\s*\}')
+    
+    intent = re.compile(r'\{\s*"Intention":\s*"([^"]+)"')
+
+    bugs = bug_pattern.findall(response)
+    
+    extracted_intent = intent.findall(response)
+    for bug in bugs:
+    
+        bug_code_line = int(bug[0])
+        code = bug[1]
+        reason = bug[2]
+        
+        extracted_info.append({
+            "Buggy Code Line": bug_code_line,
+            "Code": code,
+            "Reason": reason
+        })
+    
+    return extracted_info, extracted_intent[0]
 
 data_zs = []
 data_os = []
 
 df_input = pd.read_csv(input_csv)
-
 
 for index, col in df_input.iterrows():
     file_name = col[0]
@@ -57,31 +88,65 @@ for index, col in df_input.iterrows():
     error_code = col[2]
     explanation = col[3]
 
-    # zero-shot prompting
-    zero_shot_prompt = prompt_test + '\n\nCode:\n' + code_content
+    print(f"Processing {file_name}")
 
+    # zero-shot prompting
+    zero_shot_prompt = 'Code:' + code_content + '\n' + base_prompt
+
+    # zero-shot prompting
     chatgpt_response_zs, input_tokens_zs, output_tokens_zs = prompt_chatgpt(zero_shot_prompt)
-    bug_line_number_zs, buggy_line_zs, reason_for_bug_zs = parse_response(chatgpt_response_zs)
-    data_zs.append([file_name, zero_shot_prompt, chatgpt_response_zs, input_tokens_zs, output_tokens_zs , bug_line_number_zs, buggy_line_zs, reason_for_bug_zs])
+    bugs_zs, intent_zs = parse_response(chatgpt_response_zs)
+
+    while len(bugs_zs) < 3:
+        bugs_zs.append({"Buggy Code Line": "", "Code": "", "Reason": ""})
+    
+    data_zs.append([
+        file_name, zero_shot_prompt, chatgpt_response_zs, input_tokens_zs, output_tokens_zs, intent_zs,
+        bugs_zs[0]["Buggy Code Line"], bugs_zs[0]["Code"], bugs_zs[0]["Reason"],
+        bugs_zs[1]["Buggy Code Line"], bugs_zs[1]["Code"], bugs_zs[1]["Reason"],
+        bugs_zs[2]["Buggy Code Line"], bugs_zs[2]["Code"], bugs_zs[2]["Reason"]
+    ])
+
     # one-shot prompting
     if error_code == 'CE':
-        one_shot_prompt = prompt_test + '\n\n' + '\n\nCode Context: There is a ' + explanation + ' in the code' + '\n\nCode:' + code_content
+        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: There is a ' + explanation + ' in the code' + '\n\nCode:' + code_content
     elif error_code == 'TLE':
-        one_shot_prompt = prompt_test + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
+        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
     elif error_code == 'MLE':
-        one_shot_prompt = prompt_test + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
+        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
     elif error_code == 'RE':
-        one_shot_prompt = prompt_test + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
+        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The input triggers a ' + explanation + ' error' + '\n\nCode:' + code_content
     elif error_code == 'WA':
-        one_shot_prompt = prompt_test + '\n\n' + '\n\nCode Context: The output provides the ' + explanation + '\n\nCode:' + code_content
+        one_shot_prompt = base_prompt + '\n\n' + '\n\nCode Context: The output provides the ' + explanation + '\n\nCode:' + code_content
     else:
         one_shot_prompt = zero_shot_prompt
-    chatgpt_response_os, input_tokens_os, output_tokens_os = prompt_chatgpt(one_shot_prompt)
-    bug_line_number_os, buggy_line_os, reason_for_bug_os = parse_response(chatgpt_response_os)
-    data_os.append([file_name, one_shot_prompt,chatgpt_response_os, input_tokens_os, output_tokens_os, bug_line_number_os, buggy_line_os, reason_for_bug_os])
 
-df_output_zs = pd.DataFrame(data_zs, columns=['File Name', 'Prompt','Full Response','Input Tokens Used', 'Output Tokens Used' ,'Bug Line Number', 'Code Line with Bug', 'Reason for Bug'])
-df_output_os = pd.DataFrame(data_os, columns=['File Name', 'Prompt','Full Response', 'Input Tokens Used', 'Output Tokens Used','Bug Line Number','Code Line with Bug', 'Reason for Bug'])
+      # one-shot prompting
+    chatgpt_response_os, input_tokens_os, output_tokens_os = prompt_chatgpt(one_shot_prompt)
+    bugs_os, intent_os = parse_response(chatgpt_response_os)
+
+    while len(bugs_os) < 3:
+        bugs_os.append({"Buggy Code Line": "", "Code": "", "Reason": ""})
+    
+    data_os.append([
+        file_name, one_shot_prompt, chatgpt_response_os, input_tokens_os, output_tokens_os, intent_os,
+        bugs_os[0]["Buggy Code Line"], bugs_os[0]["Code"], bugs_os[0]["Reason"],
+        bugs_os[1]["Buggy Code Line"], bugs_os[1]["Code"], bugs_os[1]["Reason"],
+        bugs_os[2]["Buggy Code Line"], bugs_os[2]["Code"], bugs_os[2]["Reason"]
+    ])
+
+df_output_zs = pd.DataFrame(data_zs, columns=[
+    'File Name', 'Prompt', 'Full Response', 'Input Tokens Used', 'Output Tokens Used', "Code Intent",
+    'Buggy Code Line 1', 'Code 1', 'Reason 1',
+    'Buggy Code Line 2', 'Code 2', 'Reason 2',
+    'Buggy Code Line 3', 'Code 3', 'Reason 3'
+])
+df_output_os = pd.DataFrame(data_os, columns=[
+    'File Name', 'Prompt', 'Full Response', 'Input Tokens Used', 'Output Tokens Used',"Code Intent",
+    'Buggy Code Line 1', 'Code 1', 'Reason 1',
+    'Buggy Code Line 2', 'Code 2', 'Reason 2',
+    'Buggy Code Line 3', 'Code 3', 'Reason 3'
+])
 
 df_output_zs.to_csv(output_csv1, index=False)
 df_output_os.to_csv(output_csv2, index=False)
