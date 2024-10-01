@@ -1,0 +1,1 @@
+result = alphabet[i] + result  # Fix: Prepend to result, not append

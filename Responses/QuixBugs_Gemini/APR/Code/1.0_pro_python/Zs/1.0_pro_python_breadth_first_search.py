@@ -1,1 +1,0 @@
-while not queue.empty():

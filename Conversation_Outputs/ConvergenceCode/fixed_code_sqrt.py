@@ -1,0 +1,1 @@
+while abs(approx * approx - x) > epsilon:  # Bug fixed: Correct loop condition for Newton-Raphson method.

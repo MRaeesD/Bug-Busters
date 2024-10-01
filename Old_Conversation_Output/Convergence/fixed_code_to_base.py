@@ -1,0 +1,13 @@
+import string
+def to_base(num, b):
+    result = ''
+    alphabet = string.digits + string.ascii_uppercase
+    while num > 0:
+        i = num % b
+        num = num // b
+        # Prepend the new character to the result string
+        result = alphabet[i] + result # Bug: digits were added in reverse order
+    return result
+
+
+
