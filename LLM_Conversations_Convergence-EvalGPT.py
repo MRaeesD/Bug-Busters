@@ -16,7 +16,7 @@ load_dotenv()
 input_csv = './EvalGPTFix_Extracted/ExtractedEvalGPTFix.csv'
 
 # random_seed = random.randint(0, 10000)
-random_seed = 43
+random_seed = 44
 
 config_list_gemini_1_5_flash = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
@@ -275,7 +275,7 @@ def state_transition(last_speaker, groupchat):
 # ]
 
 # files_to_process = [f"file_{i}" for i in range(18, 151)]
-files_to_process = ["file_17"]
+files_to_process = ["file_4"]
 
 data_zs = []
 data_os = []
