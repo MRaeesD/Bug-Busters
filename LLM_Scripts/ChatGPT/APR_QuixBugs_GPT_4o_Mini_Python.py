@@ -2,8 +2,6 @@ import os
 import pandas as pd
 import requests
 from dotenv import load_dotenv
-import re
-import google.generativeai as genai
 
 load_dotenv()
 
@@ -70,12 +68,12 @@ for index, col in df_input1.iterrows():
     # one-shot prompting
     gpt_response_os, input_tokens_os, output_tokens_os = prompt_chatgpt(one_shot_prompt)
     reason_os, fix_os = parse_response(gpt_response_os)
-    data_os.append([file_name, zero_shot_prompt, gpt_response_os, input_tokens_os, output_tokens_os, reason_os, fix_os])
+    data_os.append([file_name, one_shot_prompt, gpt_response_os, input_tokens_os, output_tokens_os, reason_os, fix_os])
 
-    with open(f"./Responses/QuixBugs_GPT/APR/Code/Zs/4o_mini_python_{file_name}", 'w') as file:
+    with open(f"./Responses/QuixBugs_GPT/APR/Code/Zs_4o_Mini/4o_mini_python_{file_name}", 'w') as file:
         file.write(fix_zs+"\n")
     
-    with open(f"./Responses/QuixBugs_Gemini/APR/Code/Os/4o_mini_python_{file_name}", 'w') as file:
+    with open(f"./Responses/QuixBugs_GPT/APR/Code/Os_4o_Mini/4o_mini_python_{file_name}", 'w') as file:
         file.write(fix_os+"\n")
 
 df_output_zs = pd.DataFrame(data_zs, columns=[

@@ -1,0 +1,32 @@
+import pytest
+from load_testdata import load_json_testcases
+
+def shunting_yard(tokens):
+    precedence = {
+        '+': 1,
+        '-': 1,
+        '*': 2,
+        '/': 2
+    }
+
+    rpntokens = []
+    opstack = []
+    for token in tokens:
+        if isinstance(token, int):
+            rpntokens.append(token)
+        else:
+            while opstack and precedence[token] <= precedence[opstack[-1]]:
+                rpntokens.append(opstack.pop())
+            opstack.push(token)  # This line was added to correct the bug
+
+    while opstack:
+        rpntokens.append(opstack.pop())
+
+    return rpntokens
+
+testdata = load_json_testcases(shunting_yard.__name__)
+
+
+@pytest.mark.parametrize("input_data,expected", testdata)
+def test_shunting_yard(input_data, expected):
+    assert shunting_yard(*input_data) == expected
