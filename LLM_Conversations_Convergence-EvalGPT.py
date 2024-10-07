@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 import pandas as pd
 import random
 
-from PIL import Image
-from termcolor import colored
-
 import autogen
 from autogen import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
@@ -16,10 +13,10 @@ from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code
 
 load_dotenv()
 
-input_csv = './QuixBugs_Extracted/ExtractedJavaQuixBugs-APR.csv'
+input_csv = './EvalGPTFix_Extracted/ExtractedEvalGPTFix.csv'
 
 # random_seed = random.randint(0, 10000)
-random_seed = 47
+random_seed = 44
 
 config_list_gemini_1_5_flash = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
@@ -152,7 +149,7 @@ Reply DONE_REPAIRING once both agents have exchanged input multiple times and re
 
 reporting_agent = autogen.AssistantAgent(
     name="reporting_agent",
-    llm_config=gpt_4o_mini_config,
+    llm_config=gpt_4o_config,
     system_message="""
 You are the reporting agent. Provide a comprehensive summary of the debugging process and the final results.
 
@@ -171,7 +168,7 @@ Conclude your report with the word TERMINATE.
 
 convergence_judge_1 = autogen.AssistantAgent(
     name="convergence_judge_1",
-    llm_config=gpt_4o_mini_config,
+    llm_config=gpt_4o_config,
     system_message=""" You are tasked with evaluating the similarity between two sets of bug identification results provided by two independent fault localisation agents. Each agent has identified potential bugs in a given code snippet.
 
 Your goal is to iteratively assess the convergence between these two sets of results. Start by comparing the identified bugs based on factors such as location, type of issue, and any specific descriptions provided. Based on this comparison, ensure that you provide an initial Convergence Score between 0 and 1 (mandatory), where:
@@ -195,7 +192,7 @@ If the convergence is 1.0, specify the score and say GOOD otherwise say BAD.
 
 convergence_judge_2 = autogen.AssistantAgent(
     name="convergence_judge_2",
-    llm_config=gpt_4o_mini_config,
+    llm_config=gpt_4o_config,
     system_message=""" You are tasked with evaluating the similarity between two sets of bug repair results provided by two independent Automated Program Repair (APR) agents. Each agent has proposed fixes for the identified bugs in a given code snippet.
 
 Your goal is to iteratively assess the convergence between these two sets of repairs. Start by comparing the proposed fixes based on factors such as the correctness of the fix, location of changes, type of repairs made, and any specific descriptions provided. Based on this comparison, ensure that you provide an initial Convergence Score between 0 and 1 (mandatory), where:
@@ -270,17 +267,20 @@ def state_transition(last_speaker, groupchat):
         return None  # Terminate the process after reporting_agent completes its task
     return None
     
-files_to_process = [
-    "file_0", "file_1", "file_2", "file_3", "file_4", "file_5", "file_6", "file_7", "file_8", "file_9", "file_10",
-    "file_11", "file_12", "file_13", "file_14", "file_15", "file_16", "file_17", "file_18", "file_21",
-    "file_23", "file_25", "file_26", "file_27", "file_28", "file_30", "file_31", "file_35", "file_36",
-    "file_38", "file_39", "file_40"
-]
+# files_to_process = [
+#     "file_0", "file_1", "file_2", "file_3", "file_4", "file_5", "file_6", "file_7", "file_8", "file_9", "file_10",
+#     "file_11", "file_12", "file_13", "file_14", "file_15", "file_16", "file_17", "file_18", "file_21",
+#     "file_23", "file_25", "file_26", "file_27", "file_28", "file_30", "file_31", "file_35", "file_36",
+#     "file_38", "file_39", "file_40"
+# ]
+
+# files_to_process = [f"file_{i}" for i in range(18, 151)]
+files_to_process = ["file_4"]
 
 data_zs = []
 data_os = []
 
-df_input = pd.read_csv(input_csv)
+df_input = pd.read_csv(input_csv, encoding="utf-8")
 
 df_filtered = df_input[df_input.iloc[:, 0].isin(files_to_process)]
 
@@ -292,7 +292,7 @@ for row, col in df_filtered.iterrows():
 
     print(f"Processing {file_name}")
 
-    base_prompt = f"""Topic: Debug the following Java code snippet and consider how the code is intended to function based on the explanation."""
+    base_prompt = f"""Topic: Debug the following Java code snippet and consider the error in the code."""
 
     # one-shot prompting
     if error_code == 'CE':
@@ -334,11 +334,11 @@ for row, col in df_filtered.iterrows():
 
 
     # save the conversation to a file
-    with open(f"Conversation_Outputs/Eval/conversation_{file_name}.txt", 'w') as file:
+    with open(f"Conversation_Outputs/EvalGPTFix/conversation_{file_name}.txt", 'w', encoding="utf-8") as file:
         file.write(chat_history_string)
 
     # extract final fixed code from the conversation
-    with open(f"Conversation_Outputs/Eval/conversation_{file_name}.txt", 'r') as file:
+    with open(f"Conversation_Outputs/EvalGPTFix/conversation_{file_name}.txt", 'r', encoding="utf-8") as file:
         chat_history_string = file.read()
 
     lines = chat_history_string.split('\n')
@@ -364,5 +364,5 @@ for row, col in df_filtered.iterrows():
 
         fixed_code = '\n'.join(code_lines)
 
-        with open(f"Conversation_Outputs/Eval/{file_name}", 'w') as file:
+        with open(f"Conversation_Outputs/EvalGPTFix/Code/{file_name}.txt", 'w', encoding="utf-8") as file:
             file.write(fixed_code)
