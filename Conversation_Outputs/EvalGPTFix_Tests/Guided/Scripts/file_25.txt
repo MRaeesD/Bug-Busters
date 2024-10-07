@@ -1,0 +1,89 @@
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Scanner;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        try (Scanner sc = new Scanner(System.in);) {
+
+            PrintWriter out = new PrintWriter(System.out);
+            StringBuilder sb = new StringBuilder();
+
+            int n = Integer.parseInt(sc.next());
+
+            Map<Integer, Long> rmap = new HashMap<Integer, Long>();
+            Map<Integer, Long> cmap = new HashMap<Integer, Long>();
+            Map<Pair, Long> pmap = new HashMap<Pair, Long>(); // Use Pair as key
+
+            for (int i = 0; i < n; i++) {
+                int r = Integer.parseInt(sc.next());
+                int c = Integer.parseInt(sc.next());
+                Long x = Long.parseLong(sc.next());
+
+                rmap.merge(r, x, Long::sum);
+                cmap.merge(c, x, Long::sum);
+
+                Pair pair = new Pair(r, c); // Create a Pair object
+                pmap.put(pair, x);
+            }
+
+            List<Entry<Integer, Long>> list = new ArrayList<Entry<Integer, Long>>(cmap.entrySet());
+            list.sort(Entry.comparingByValue());
+
+            long ans = 0L;
+            for (Map.Entry<Integer, Long> row : rmap.entrySet()) {
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    Entry<Integer, Long> cmax = list.get(list.size() - 1);
+
+                    Pair pair = new Pair(row.getKey(), cmax.getKey()); // Create a Pair for lookup
+
+                    Long v = pmap.get(pair);
+
+                    if (v == null) {
+                        ans = Math.max(ans, row.getValue() + cmax.getValue());
+                        break;
+                    } else {
+                        ans = Math.max(ans, row.getValue() + cmax.getValue() - v);
+                    }
+                }
+            }
+
+            sb.append(ans);
+
+            out.println(sb.toString());
+            out.flush();
+
+        }
+
+    }
+
+    // Custom Pair class
+    static class Pair {
+        int row;
+        int col;
+
+        Pair(int row, int col) {
+            this.row = row;
+            this.col = col;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Pair pair = (Pair) o;
+            return row == pair.row && col == pair.col;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * row + col;
+        }
+    }
+}
