@@ -185,8 +185,8 @@ def state_transition(last_speaker, groupchat):
 #     "file_38", "file_39", "file_40"
 # ]
 
-# files_to_process = [f"file_{i}" for i in range(18, 151)]
-files_to_process = ["file_4"]
+files_to_process = [f"file_{i}" for i in range(151)]
+# files_to_process = ["file_4"]
 
 data_zs = []
 data_os = []

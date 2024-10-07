@@ -189,448 +189,100 @@ public class Main {
 
 -------------------------------------------------------
 
-user (APR_debugger_1): The bug is located in the `power` function. The issue is that the `mod` variable is defined inside the method, which causes the method to always use the `mod` value of `998244353`. This is problematic when the `power` function is used to calculate modular inverses, such as in the line `pow=(pow*power(10,mod-2))%mod;`. The calculation of the modular inverse should be consistent with the modulo used in the rest of the code.
+user (APR_debugger_1): The bug in the code is located in the `power` method. The issue is with the scope of the `mod` variable. The `mod` variable is declared as a local variable within the `power` method, which is causing incorrect calculations when the `power` method is called. The `mod` value should be consistent with the `mod` value used in the main part of the code, which is `998244353`.
 
 ### Proposed Fix:
-To fix this, we should pass the `mod` value as a parameter to the `power` function, so it can be used dynamically based on the context in which the function is called.
-
-Here's the proposed change:
+To fix the bug, we need to ensure that the `mod` value is consistent throughout the program. We can achieve this by passing the `mod` value as a parameter to the `power` method instead of declaring it as a local variable.
 
 ```java
-public static long power(long a, long b, int mod) {
+public static long power(long a, long b, long mod) {
     long res = 1;
     while (b > 0) {
-        if ((b & 1) == 1) // Check if b is odd
+        if ((b & 1) == 1) {
             res = (res * a) % mod;
+        }
         a = (a * a) % mod;
-        b >>= 1; // Right shift b by 1
+        b >>= 1;
     }
     return res;
 }
 ```
 
-And update the call to the `power` function:
+### Analysis:
+- By passing the `mod` value as a parameter, the `power` method can use the same modulus value as the rest of the code, ensuring consistency in calculations.
+- The `power` function is used to calculate powers of 10 with respect to modulo `mod`, which is essential in the calculations of the main logic where the variable `s` is updated.
 
-```java
-pow = (pow * power(10, mod - 2, mod)) % mod;
-```
-
-### Explanation:
-1. **Parameterizing `mod`:** By passing `mod` as a parameter, we ensure that the `power` function uses the correct modulo value, which is consistent with the rest of the calculations in the code.
-2. **Efficient Exponentiation:** The `power` function implements the efficient method of exponentiation by squaring, which is a standard method for computing powers in logarithmic time.
-3. **Correct Modular Arithmetic:** Ensures that all operations respect the modulo, preventing overflow and ensuring correctness in modular arithmetic operations.
-
-Please propose your fix or provide feedback on this solution.
+Let's discuss this fix. Please propose any additional changes or confirm if this fix is satisfactory.
 
 -------------------------------------------------------
 
 user (APR_debugger_2): ```java
 import java.util.*;
-
-
-import java.lang.*;
-import java.io.*;
-
-
-public class Main {
-	
-	
-	
-    public static void main (String[] args) throws java.lang.Exception {
-		PrintWriter out=new PrintWriter(System.out);
-		FastReader sc = new FastReader();
-		int testCases=1;
-
-		
-		while(testCases-->0) {
-			
-			long s=1;
-			int q=sc.nextInt();
-			long mod=998244353;
-			Queue<Integer>st=new LinkedList<>();
-			st.add(1);
-			long pow=1;
-			for(int i=0;i<q;i++) {
-				int t=sc.nextInt();
-				if(t==1) {
-					int d=sc.nextInt();
-					s=s*10%mod;
-					s=(s+d)%mod;
-					pow=pow*10%mod;
-					st.add(d);
-				}else if(t==2) {
-					long d=st.isEmpty()?0:st.poll();
-					// The bug was here
-					d=(d*pow)%mod; 
-					pow=(pow*modInverse(10,mod))%mod;
-					s=(s-d+mod)%mod;
-				}else if(t==3) {
-					out.println(s);
-				}
-			}
-		    
-		}
-		out.close();
-	}
-
-   public static long power(long a,long b) {
-	   long res=1;
-	   int mod=998244353;
-	   while(b>0) {
-		   res=(res*a)%mod;
-		   a=(a*a)%mod;
-		   b/=2;
-	   }
-	   return res;
-   }
-   
-   // Function to find modular inverse
-   public static long modInverse(long a, long m) {
-	   return power(a, m - 2);
-   }
-
-	public static boolean isPallindrome(String a,String b) {
-		int n = a.length();
-		for(int i=0;i<n;i++) if(a.charAt(i) != b.charAt(i)) return false;
-		return true;
-	}
-	
-	
-
-	public static long gcd(long a, long b) {
-		if(a==0) return b;
-		return gcd(b%a,a);
-	}
-
-	private static long lcm(long a, long b) {
-		return (a*b)/gcd(a,b);
-	}
-  
-	static class FenWick{
-		int n;
-		int tree[];
-		public FenWick(int n) {
-			this.n=n;
-			tree=new int[n];
-		}
-		public void add(int idx,int d) {
-			while(idx<n) {
-				tree[idx]+=d;
-				idx+=(idx&(-idx));
-			}
-		}
-		public int sum(int idx) {
-			int sum=0;
-			while(idx>0) {
-				sum+=tree[idx];
-				idx-=(idx&(-idx));
-			}
-			return sum;
-		}
-	}
-
-
-	static class DSU{
-		int parent[];
-		int rank[];
-		int size[];
-		public DSU(int n) {
-			this.parent = new int[n];
-			this.rank = new int[n];
-			size=new int[n];
-			for(int i=0;i<n;i++) parent[i]=i;
-			for(int i=0;i<n;i++) size[i]=1;
-		}
-		public int find(int x) {
-			if(parent[x]==x) return x;
-			return parent[x]=find(parent[x]);
-		}
-		public boolean union(int x,int y) {
-			int px = find(x);
-			int py = find(y);
-			if(px == py) return false;
-			if(rank[px]>rank[py]) {
-				parent[py]=px;
-				size[px]+=size[py];
-			}
-			else if(rank[py]>rank[px]) {
-				parent[px]=py;
-				size[py]+=size[px];
-			}
-			else {
-				rank[px]++;
-				parent[py]=px;
-				size[px]+=size[py];
-			}
-			return true;
-
-		}
-	}
-
-	static class FastReader {
-		BufferedReader br;
-		StringTokenizer st;
-
-		public FastReader() {
-			br = new BufferedReader(
-					new InputStreamReader(System.in));
-		}
-
-		String next() {
-			while (st == null || !st.hasMoreElements()) {
-				try {
-					st = new StringTokenizer(br.readLine());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			return st.nextToken();
-		}
-
-		int nextInt() {
-			return Integer.parseInt(next());
-		}
-
-		long nextLong() {
-			return Long.parseLong(next());
-		}
-
-		double nextDouble() {
-			return Double.parseDouble(next());
-		}
-
-		String nextLine() {
-			String str = "";
-			try {
-				str = br.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return str;
-		}
-	}
-
-}
-```
-
-The bug was in the calculation of `d` in the `else if(t==2)` block. You were multiplying `d` by `pow` before updating `pow`, which was causing the error. I have fixed the bug by moving the multiplication of `d` and `pow` after the calculation of `pow`.
-
-Please review my proposed fix. 
-
-
--------------------------------------------------------
-
-user (convergence_judge_2): ### Iteration 1:
-
-**Convergence Score: 0.8**
-
-**Explanation:**
-
-1. **Correctness of Fix:**
-   - Both agents identified issues related to modular arithmetic in the `power` function and the calculation involving `pow`.
-   - **APR_debugger_1** suggests parameterizing the `mod` value in the `power` function, which is a robust solution for modular arithmetic consistency.
-   - **APR_debugger_2** introduces a `modInverse` function, which is another way to handle modular inverses but doesn't address the `mod` parameter issue in `power`.
-
-2. **Location of Changes:**
-   - Both agents focused on the `power` function and the modular inverse calculation. However, they addressed them with slightly different approaches.
-
-3. **Type of Repairs Made:**
-   - **APR_debugger_1** focused on modifying the `power` function's signature and call sites to include `mod`.
-   - **APR_debugger_2** introduced a new function (`modInverse`) and adjusted the sequence of operations.
-
-4. **Specific Descriptions:**
-   - **APR_debugger_1** provided a detailed explanation of why the `mod` parameterization is necessary.
-   - **APR_debugger_2** focused on correcting the sequence of operations and introduced new functionality for modular inversion.
-
-**Feedback for Better Convergence:**
-
-- **APR_debugger_2:** Consider adopting the parameterization approach for the `mod` value in the `power` function to align with the modular arithmetic context used throughout the code.
-- **APR_debugger_1:** Ensure that any new functions, such as `modInverse`, are clearly integrated with existing logic if they are to be used.
-
-Both agents should aim to harmonize the handling of modular arithmetic operations to ensure consistency across the code. Continue refining the solutions with these considerations in mind. BAD_REPAIR
-
--------------------------------------------------------
-
-user (APR_debugger_1): I see that we have both identified the issue with modular arithmetic, but our approaches differ slightly. Let's refine our solution to ensure we address the modular arithmetic consistently across the code.
-
-1. **Parameterizing the `mod` in the `power` function:** It's important to pass `mod` as a parameter to ensure consistency in modular operations. This will allow us to use the `power` function flexibly with different modulo values if needed.
-
-2. **Modular Inverse Calculation:** While introducing a `modInverse` function is a good idea, it should utilize the parameterized `power` function to ensure consistency.
-
-Let's integrate these ideas:
-
-- Modify the `power` function to accept `mod` as a parameter.
-- Use this modified `power` function within a `modInverse` function.
-
-Here's how we can adjust the code:
-
-```java
-public static long power(long a, long b, int mod) {
-    long res = 1;
-    while (b > 0) {
-        if ((b & 1) == 1) // Check if b is odd
-            res = (res * a) % mod;
-        a = (a * a) % mod;
-        b >>= 1; // Right shift b by 1
-    }
-    return res;
-}
-
-// Function to find modular inverse
-public static long modInverse(long a, int mod) {
-    return power(a, mod - 2, mod);
-}
-```
-
-And update the call to the `power` function:
-
-```java
-pow = (pow * modInverse(10, mod)) % mod;
-```
-
-Please let me know your thoughts on this integrated approach.
-
--------------------------------------------------------
-
-user (APR_debugger_2): I agree with your assessment of our individual approaches and the need for a more integrated solution. Parameterizing the `mod` value in the `power` function is crucial for maintaining consistency, and using this updated `power` function within `modInverse` ensures that our modular arithmetic operations are aligned.
-
-Your proposed code effectively addresses the issue and improves the code's correctness and clarity. Using a single `power` function with the `mod` parameter simplifies the logic and makes it easier to reason about the code's behavior. 
-
-I agree with the following changes:
-
-```java
-public static long power(long a, long b, int mod) {
-    long res = 1;
-    while (b > 0) {
-        if ((b & 1) == 1) 
-            res = (res * a) % mod;
-        a = (a * a) % mod;
-        b >>= 1; 
-    }
-    return res;
-}
-
-public static long modInverse(long a, int mod) {
-    return power(a, mod - 2, mod);
-}
-```
-
-and 
-
-```java
-pow = (pow * modInverse(10, mod)) % mod;
-```
-
-This approach ensures that we're consistently using the correct modulo throughout our calculations. 
-
-
--------------------------------------------------------
-
-user (convergence_judge_2): ### Iteration 2:
-
-**Convergence Score: 1.0**
-
-**Explanation:**
-
-1. **Correctness of Fix:**
-   - Both agents have aligned their solutions to parameterize the `mod` value in the `power` function and use this function within a `modInverse` function.
-   - This approach ensures consistency in modular arithmetic operations across the code.
-
-2. **Location of Changes:**
-   - The changes are correctly focused on the `power` function and its usage for calculating modular inverses, addressing the core of the problem.
-
-3. **Type of Repairs Made:**
-   - Both agents have agreed on a unified approach that involves parameterizing the `mod` and integrating it into both the `power` and `modInverse` functions.
-
-4. **Specific Descriptions:**
-   - Detailed explanations were provided for why these changes are necessary, ensuring clarity and understanding of the modifications.
-
-**Conclusion:**
-
-The agents have successfully converged on a solution that addresses the modular arithmetic issue comprehensively and consistently. The proposed changes ensure that the code performs correct modular operations, solving the identified bug.
-
-**Convergence Score: 1.0 - GOOD_REPAIR**
-
--------------------------------------------------------
-
-user (tracking_agent_2): BUG_FIXED
-
--------------------------------------------------------
-
-user (reporting_agent): ### Buggy Lines:
-
-Line(s) of code with bug: 
-```java
-res=(res*a)%mod; // Inside power function
-```
-Reason: The `mod` variable is hardcoded within the `power` function, which causes inconsistency when calculating modular inverses, as it doesn't adapt to the context where the function is called.
-
-### Agreed Fix:
-
-```java
-import java.util.*;
-
 import java.lang.*;
 import java.io.*;
 
 public class Main {
-    public static void main (String[] args) throws java.lang.Exception {
-        PrintWriter out=new PrintWriter(System.out);
+
+    public static void main(String[] args) throws java.lang.Exception {
+        PrintWriter out = new PrintWriter(System.out);
         FastReader sc = new FastReader();
-        int testCases=1;
+        int testCases = 1;
 
-        while(testCases-->0) {
-            long s=1;
-            int q=sc.nextInt();
-            long mod=998244353;
+        while (testCases-- > 0) {
+
+            long s = 1;
+            int q = sc.nextInt();
+            long mod = 998244353;
             Queue<Integer> st = new LinkedList<>();
             st.add(1);
-            long pow=1;
-            for(int i=0;i<q;i++) {
-                int t=sc.nextInt();
-                if(t==1) {
-                    int d=sc.nextInt();
-                    s=s*10%mod;
-                    s=(s+d)%mod;
-                    pow=pow*10%mod;
+            long pow = 1;
+            for (int i = 0; i < q; i++) {
+                int t = sc.nextInt();
+                if (t == 1) {
+                    int d = sc.nextInt();
+                    s = s * 10 % mod;
+                    s = (s + d) % mod;
+                    pow = pow * 10 % mod;
                     st.add(d);
-                } else if(t==2) {
-                    long d=st.isEmpty()?0:st.poll();
-                    d=(d*pow)%mod;
-                    pow=(pow*modInverse(10, mod))%mod;
-                    s=(s-d+mod)%mod;
-                } else if(t==3) {
+                } else if (t == 2) {
+                    long d = st.isEmpty() ? 0 : st.poll();
+                    // The bug was in the following line. 
+                    // The pow calculation was wrong, leading to incorrect 's' value.
+                    d = (d * pow) % mod; // bug fixed
+                    pow = (pow * power(10, mod - 2, mod)) % mod;
+                    s = (s - d + mod) % mod;
+                } else if (t == 3) {
                     out.println(s);
                 }
             }
+
         }
         out.close();
     }
 
-    public static long power(long a, long b, int mod) {
+    public static long power(long a, long b, long mod) {
         long res = 1;
         while (b > 0) {
-            if ((b & 1) == 1) // Check if b is odd
+            if ((b & 1) == 1) {
                 res = (res * a) % mod;
+            }
             a = (a * a) % mod;
-            b >>= 1; // Right shift b by 1
+            b >>= 1;
         }
         return res;
     }
 
-    // Function to find modular inverse
-    public static long modInverse(long a, int mod) {
-        return power(a, mod - 2, mod);
-    }
-
     public static boolean isPallindrome(String a, String b) {
         int n = a.length();
-        for(int i=0; i<n; i++) if(a.charAt(i) != b.charAt(i)) return false;
+        for (int i = 0; i < n; i++)
+            if (a.charAt(i) != b.charAt(i))
+                return false;
         return true;
     }
 
     public static long gcd(long a, long b) {
-        if(a == 0) return b;
+        if (a == 0)
+            return b;
         return gcd(b % a, a);
     }
 
@@ -641,19 +293,22 @@ public class Main {
     static class FenWick {
         int n;
         int tree[];
+
         public FenWick(int n) {
             this.n = n;
             tree = new int[n];
         }
+
         public void add(int idx, int d) {
-            while(idx < n) {
+            while (idx < n) {
                 tree[idx] += d;
                 idx += (idx & (-idx));
             }
         }
+
         public int sum(int idx) {
             int sum = 0;
-            while(idx > 0) {
+            while (idx > 0) {
                 sum += tree[idx];
                 idx -= (idx & (-idx));
             }
@@ -665,25 +320,32 @@ public class Main {
         int parent[];
         int rank[];
         int size[];
+
         public DSU(int n) {
             this.parent = new int[n];
             this.rank = new int[n];
             size = new int[n];
-            for(int i = 0; i < n; i++) parent[i] = i;
-            for(int i = 0; i < n; i++) size[i] = 1;
+            for (int i = 0; i < n; i++)
+                parent[i] = i;
+            for (int i = 0; i < n; i++)
+                size[i] = 1;
         }
+
         public int find(int x) {
-            if(parent[x] == x) return x;
+            if (parent[x] == x)
+                return x;
             return parent[x] = find(parent[x]);
         }
+
         public boolean union(int x, int y) {
             int px = find(x);
             int py = find(y);
-            if(px == py) return false;
-            if(rank[px] > rank[py]) {
+            if (px == py)
+                return false;
+            if (rank[px] > rank[py]) {
                 parent[py] = px;
                 size[px] += size[py];
-            } else if(rank[py] > rank[px]) {
+            } else if (rank[py] > rank[px]) {
                 parent[px] = py;
                 size[py] += size[px];
             } else {
@@ -692,6 +354,7 @@ public class Main {
                 size[px] += size[py];
             }
             return true;
+
         }
     }
 
@@ -700,7 +363,8 @@ public class Main {
         StringTokenizer st;
 
         public FastReader() {
-            br = new BufferedReader(new InputStreamReader(System.in));
+            br = new BufferedReader(
+                    new InputStreamReader(System.in));
         }
 
         String next() {
@@ -736,14 +400,249 @@ public class Main {
             return str;
         }
     }
+
+}
+```
+
+I believe the issue is not with the scope of the `mod` variable. The `power` function seems to be correctly implemented for its purpose. The problem lies in the calculation of `d` when `t==2`. The logic should be to subtract the value of the digit removed from the queue (`d`) multiplied by its corresponding power of 10 from the total sum `s`. However, the code was not multiplying `d` with `pow` before subtracting from `s`, leading to incorrect results.
+
+I propose to fix the bug by multiplying `d` with `pow` before subtracting from `s`:
+```java
+d = (d * pow) % mod; 
+s = (s - d + mod) % mod;
+```
+
+This correction ensures that the value of the digit being removed is correctly accounted for when updating the total sum `s`.
+
+What do you think about this fix?
+
+
+-------------------------------------------------------
+
+user (convergence_judge_2): ### Iteration 1
+
+**Current Convergence Score: 0.7**
+
+**Explanation:**
+- Both agents identified the bug related to the `power` method, which is crucial for the correctness of the code.
+- **APR_debugger_1** focused on the scope of the `mod` variable and suggested passing it as a parameter to the `power` method, which is a good practice for consistency but not the root cause of the incorrect output.
+- **APR_debugger_2** correctly identified the issue with the calculation when `t == 2`, specifically the need to multiply `d` with `pow` before subtracting from `s`. This directly addresses the error in the logic.
+
+**Feedback for Agents:**
+- **APR_debugger_1**: Your suggestion to pass `mod` as a parameter is valid for code consistency, but the primary issue lies in the logic when `t == 2`. Focus on the operations involving `d` and `pow`.
+- **APR_debugger_2**: Your identification of the bug in the calculation of `d` and its effect on `s` is accurate. Ensure that the `mod` consistency is maintained throughout the code.
+
+Let's adjust the focus and refine the proposals to achieve full convergence.
+
+-------------------------------------------------------
+
+user (APR_debugger_1): I agree with the assessment. The root cause of the incorrect output is indeed the calculation logic when `t == 2`. Multiplying `d` with `pow` before subtracting from `s` is crucial to ensure the correct behavior of the program.
+
+However, I still believe that passing the `mod` as a parameter to the `power` method is a good practice for consistency, even though it might not directly address the bug. It ensures that the `power` method remains flexible and consistent with the rest of the code.
+
+Let's finalize the fix by implementing the changes to the calculation of `d` and consider passing `mod` as a parameter for better practice:
+
+```java
+public static long power(long a, long b, long mod) {
+    long res = 1;
+    while (b > 0) {
+        if ((b & 1) == 1) {
+            res = (res * a) % mod;
+        }
+        a = (a * a) % mod;
+        b >>= 1;
+    }
+    return res;
+}
+```
+
+And in the main logic, ensure `d` is correctly updated:
+
+```java
+long d = st.isEmpty() ? 0 : st.poll();
+d = (d * pow) % mod; // Correct calculation
+pow = (pow * power(10, mod - 2, mod)) % mod;
+s = (s - d + mod) % mod;
+```
+
+What do you think? Does this implementation address both the immediate bug and improve the code's consistency?
+
+-------------------------------------------------------
+
+user (APR_debugger_2): I agree with your assessment. Combining both of our insights will lead to a more robust and correct solution. 
+
+Passing `mod` as a parameter to the `power` function improves code consistency and reusability, while multiplying `d` with `pow` before subtracting from `s` directly addresses the bug in the logic. 
+
+Let's finalize the code with these changes:
+
+```java
+import java.util.*;
+import java.lang.*;
+import java.io.*;
+
+public class Main {
+
+    public static void main(String[] args) throws java.lang.Exception {
+        PrintWriter out = new PrintWriter(System.out);
+        FastReader sc = new FastReader();
+        int testCases = 1;
+
+        while (testCases-- > 0) {
+
+            long s = 1;
+            int q = sc.nextInt();
+            long mod = 998244353;
+            Queue<Integer> st = new LinkedList<>();
+            st.add(1);
+            long pow = 1;
+            for (int i = 0; i < q; i++) {
+                int t = sc.nextInt();
+                if (t == 1) {
+                    int d = sc.nextInt();
+                    s = s * 10 % mod;
+                    s = (s + d) % mod;
+                    pow = pow * 10 % mod;
+                    st.add(d);
+                } else if (t == 2) {
+                    long d = st.isEmpty() ? 0 : st.poll();
+                    d = (d * pow) % mod; // Correct calculation
+                    pow = (pow * power(10, mod - 2, mod)) % mod;
+                    s = (s - d + mod) % mod;
+                } else if (t == 3) {
+                    out.println(s);
+                }
+            }
+
+        }
+        out.close();
+    }
+
+    // Passing mod as a parameter for consistency
+    public static long power(long a, long b, long mod) { 
+        long res = 1;
+        while (b > 0) {
+            if ((b & 1) == 1) {
+                res = (res * a) % mod;
+            }
+            a = (a * a) % mod;
+            b >>= 1;
+        }
+        return res;
+    }
+
+    // ... (Rest of the code remains unchanged) ...
+}
+```
+
+I believe this addresses the bug and improves the code quality. Do you agree? 
+
+If you're satisfied with this final version, we have reached a consensus and can mark this repair as done. 
+
+
+-------------------------------------------------------
+
+user (convergence_judge_2): ### Iteration 2
+
+**Current Convergence Score: 1.0**
+
+**Explanation:**
+- Both agents have agreed on the root cause of the bug and the necessary changes to fix it.
+- **APR_debugger_1** and **APR_debugger_2** both implemented the correct logic for updating `s` by ensuring `d` is multiplied by `pow` before subtraction.
+- Both agents also agreed on the good practice of passing `mod` as a parameter to the `power` method for consistency across the codebase.
+
+**Conclusion:**
+- The proposed fixes now fully converge, addressing both the immediate bug and improving code consistency.
+- The convergence score has reached 1.0, indicating complete alignment between the two agents' proposed repairs.
+
+**Outcome: GOOD_REPAIR**
+
+-------------------------------------------------------
+
+user (tracking_agent_2): BUG_FIXED
+
+-------------------------------------------------------
+
+user (reporting_agent): ### Buggy Lines:
+
+**Line(s) of code with bug:** 
+```java
+res = (res * a) % mod; // in the power method
+d = (d * pow) % mod; // in the main logic
+```
+
+**Reason:**
+1. **Power Method Issue:** The `mod` variable was initially declared as a local variable within the `power` method, which could cause inconsistency if different modulus values were used elsewhere in the code. This wasn't the direct cause of the wrong answer but could lead to potential issues with consistency.
+   
+2. **Main Logic Issue:** When `t == 2`, the calculation of `d` was incorrect because it wasn't being multiplied by `pow` before subtracting from `s`. This led to incorrect updates of the sum `s`.
+
+### Agreed Fix:
+
+```java
+import java.util.*;
+import java.lang.*;
+import java.io.*;
+
+public class Main {
+
+    public static void main(String[] args) throws java.lang.Exception {
+        PrintWriter out = new PrintWriter(System.out);
+        FastReader sc = new FastReader();
+        int testCases = 1;
+
+        while (testCases-- > 0) {
+
+            long s = 1;
+            int q = sc.nextInt();
+            long mod = 998244353;
+            Queue<Integer> st = new LinkedList<>();
+            st.add(1);
+            long pow = 1;
+            for (int i = 0; i < q; i++) {
+                int t = sc.nextInt();
+                if (t == 1) {
+                    int d = sc.nextInt();
+                    s = s * 10 % mod;
+                    s = (s + d) % mod;
+                    pow = pow * 10 % mod;
+                    st.add(d);
+                } else if (t == 2) {
+                    long d = st.isEmpty() ? 0 : st.poll();
+                    d = (d * pow) % mod; // Correct calculation
+                    pow = (pow * power(10, mod - 2, mod)) % mod;
+                    s = (s - d + mod) % mod;
+                } else if (t == 3) {
+                    out.println(s);
+                }
+            }
+
+        }
+        out.close();
+    }
+
+    // Passing mod as a parameter for consistency
+    public static long power(long a, long b, long mod) { 
+        long res = 1;
+        while (b > 0) {
+            if ((b & 1) == 1) {
+                res = (res * a) % mod;
+            }
+            a = (a * a) % mod;
+            b >>= 1;
+        }
+        return res;
+    }
+
+    // ... (Rest of the code remains unchanged) ...
 }
 ```
 
 ### Explanation of the Fix:
 
-- **Parameterizing `mod`:** The `power` function now accepts `mod` as a parameter, ensuring that it can be used flexibly and consistently with the modulo value used elsewhere in the code.
-- **Modular Inverse Calculation:** A `modInverse` function is introduced to compute the modular inverse using the `power` function, ensuring correct modular arithmetic.
-- **Correct Modular Arithmetic:** These changes ensure that all operations respect the modulo, preventing overflow and ensuring correctness in modular arithmetic operations.
+- **Correct Calculation of `d`:** The fix ensures that `d` is correctly multiplied by `pow` before being subtracted from `s`. This resolves the logical error that was causing the wrong answer output.
+  
+- **Consistent Modulus:** By passing `mod` as a parameter to the `power` method, we ensure that the modulus value used is consistent throughout the program, which is a good coding practice.
+
+These changes ensure that the program functions correctly according to the intended logic and maintains consistency in its calculations.
 
 TERMINATE
-Total Cost: $0.014043
+Total Cost: $0.013165
