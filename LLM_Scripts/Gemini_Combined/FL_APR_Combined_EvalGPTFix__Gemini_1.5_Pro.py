@@ -13,10 +13,10 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 input_csv = './EvalGPTFix_Extracted/ExtractedEvalGPTFix.csv'
 # output_csv2 = './Responses/EvalGPTFix_Gemini/Gemini_1.5_Pro_EvalGPTFix.csv'
-output_csv2 = './Responses/EvalGPTFix_Gemini/EXTRA_Gemini_1.5_Pro_EvalGPTFix.csv'
+output_csv2 = './Responses/EvalGPTFix_Gemini/3EXTRA_Gemini_1.5_Pro_EvalGPTFix.csv'
 
 
-base_prompt = '''Debug the following Java code snippet. Localise the bug(s) and provide a fix for the bug and a reason for the fix. 
+base_prompt = '''Debug the following Java code snippet. Localise the bug(s), provide a fix for the bug(s) and a reason for the fix. 
 Provide the full code snippet with the bugs fixed wrapped in a code block based on the following template structure:
     ```
         {
@@ -30,7 +30,7 @@ Provide the full code snippet with the bugs fixed wrapped in a code block based 
 
         "Automatic Program Repair": [
             {
-            "Fixed Code": <Fully fixed code, wrapped in a Java code block: ``` Java ```. Do not use \n or \t>,
+            "Fixed Code": <Fully fixed code, wrapped in a Java code block. Preserve proper indentation.>,
             "Reason for Fix": <Reason for the fix>
             },
         ]   
@@ -74,21 +74,27 @@ def parse_response(input_string):
     
     return fault_localisation_content, automatic_program_repair_content, fixed_code_content
 
+# files_to_process = [
+#     "file_0", "file_1", "file_2", "file_3", "file_4", "file_5", "file_6", "file_7", "file_8", "file_9", "file_10",
+#     "file_11", "file_12", "file_13", "file_14", "file_15", "file_16", "file_17", "file_18", "file_21",
+#     "file_23", "file_25", "file_26", "file_27", "file_28", "file_30", "file_31", "file_35", "file_36",
+#     "file_38", "file_39", "file_40"
+# ]
+
 files_to_process = [
-    "file_0", "file_1", "file_2", "file_3", "file_4", "file_5", "file_6", "file_7", "file_8", "file_9", "file_10",
-    "file_11", "file_12", "file_13", "file_14", "file_15", "file_16", "file_17", "file_18", "file_21",
-    "file_23", "file_25", "file_26", "file_27", "file_28", "file_30", "file_31", "file_35", "file_36",
-    "file_38", "file_39", "file_40"
+    "file_23"
 ]
 
 data_zs = []
 data_os = []
 
-df_input = pd.read_csv(input_csv)
+df_input = pd.read_csv(input_csv, encoding = 'utf-8')
 
 df_filtered = df_input[df_input.iloc[:, 0].isin(files_to_process)]
 
 for index, col in df_filtered.iterrows():
+# for index, col in df_input.iterrows():
+
     file_name = col[0]
     code_content = col[1]
     error_code = col[4]
@@ -121,8 +127,11 @@ for index, col in df_filtered.iterrows():
         file_name, one_shot_prompt, gemini_response_os, input_tokens_os, output_tokens_os, fault_localisation_output, automatic_program_repair_output, fixed_code_content
     ])
 
+    with open(f"Responses/EvalGPTFix_Gemini/Code/{file_name}.txt", 'w', encoding = 'utf-8') as file:
+        file.write(fixed_code_content)
+
 df_output_os = pd.DataFrame(data_os, columns=[
     'File Name', 'Prompt', 'Full Response', 'Input Tokens Used', 'Output Tokens Used',"Fault Localisation", "Automatic Program Repair", "fixed code"
 ])
 
-df_output_os.to_csv(output_csv2, index=False)
+df_output_os.to_csv(output_csv2, index=False, encoding = 'utf-8')
