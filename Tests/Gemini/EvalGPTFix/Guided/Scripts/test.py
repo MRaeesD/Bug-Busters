@@ -13,8 +13,8 @@ input_csv = os.path.join(script_dir, 'ExtractedEvalGPTFix2.csv')
 #     "file_30", "file_31", "file_35", "file_36", "file_38", "file_39", "file_40"
 # ]
 
-# files_to_process = [f"file_{i}" for i in range(151)]
-files_to_process = [f"file_58"]
+files_to_process = [f"file_{i}" for i in range(151)]
+# files_to_process = [f"file_58"]
 
 df_input = pd.read_csv(input_csv, encoding='utf-8')
 
