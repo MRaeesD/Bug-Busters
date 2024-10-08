@@ -19,7 +19,7 @@ load_dotenv()
 input_csv = './QuixBugs_Extracted/ExtractedJavaQuixBugs-APR.csv'
 
 # random_seed = random.randint(0, 10000)
-random_seed = 47
+random_seed = 49
 
 config_list_gemini_1_5_flash = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
@@ -179,10 +179,13 @@ def state_transition(last_speaker, groupchat):
     elif last_speaker is reporting_agent:
         return None  # Terminate the process after reporting_agent completes its task
     return None
-    
-df_input = pd.read_csv(input_csv)
 
-for index, row in df_input.iloc[12:13].iterrows():
+data_zs = []
+data_os = []
+
+df_input = pd.read_csv(input_csv, encoding="utf-8")
+
+for index, row in df_input.iterrows():
     file_name = row[0]
     code_content = row[1]
     explanation = row[2]

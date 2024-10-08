@@ -6,7 +6,8 @@ def minimum_spanning_tree(weight_by_edge):
         u, v = edge
         if group_by_node.setdefault(u, {u}) != group_by_node.setdefault(v, {v}):
             mst_edges.add(edge)
-            group_by_node[u] |= group_by_node[v]  # Merge the sets using in-place set union
-            group_by_node[v] = group_by_node[u]  # Point v's group to the merged set 
+            group_by_node[u].update(group_by_node[v])
+            for node in group_by_node[v]:
+                group_by_node[node] = group_by_node[u]  # Fix: Assign the same set reference to all nodes in the merged group
 
     return mst_edges

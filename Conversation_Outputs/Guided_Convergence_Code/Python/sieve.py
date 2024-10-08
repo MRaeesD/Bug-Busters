@@ -1,0 +1,7 @@
+def sieve(max):
+    primes = []
+    for n in range(2, max + 1):
+        # Use 'all()' to ensure n is not divisible by any existing prime
+        if all(n % p > 0 for p in primes):
+            primes.append(n)
+    return primes
