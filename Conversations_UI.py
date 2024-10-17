@@ -19,7 +19,7 @@ from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code
 
 load_dotenv()
 
-random_seed = random.randint(0, 10000)
+random_seed = 42
 
 config_list_gemini_1_5_flash = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
@@ -300,8 +300,8 @@ pn.extension(design="material")
 def callback(contents: str, user: str, instance: pn.chat.ChatInterface):
     initializer.initiate_chat(manager, message=contents)
 
-chat_interface = pn.chat.ChatInterface(callback=callback)
-chat_interface.send("Send code to debug!", user="System", respond=False)
+chat_interface = pn.chat.ChatInterface(callback=callback)               
+chat_interface.send("Send us code to debug! \n Ensure that your code is put in a code markdown block.", user="System", respond=False)
 chat_interface.servable()
 
 avatar = {initializer.name:"👨‍💼", fault_localisation_debugger_1.name:"👩‍💻",fault_localisation_debugger_2.name:"👩‍💻", 
