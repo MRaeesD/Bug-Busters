@@ -22,8 +22,8 @@ The primary goals of this investigation are:
 ## Repository Structure
 The code in this repository is organized into three distinct branches to streamline the benchmarking and evaluation process:
 
-- **ChatGPT:** Benchmarking different **Gemini Models**
-- **Gemini:** Benchmarking different **GPT Models**
+- **Gemini:** Benchmarking different **Gemini Models**
+- **ChatGPT:** Benchmarking different **GPT Models**
 - **Multi-Agent-Conversation:** Evaluating the performance of the **Multi-Agent System**
 
 ### Folder Overview
